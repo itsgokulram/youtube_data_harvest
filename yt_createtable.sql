@@ -5,7 +5,6 @@ CREATE TABLE channels(
     subscribers INT,
     views INT,
     description TEXT,
-    total_videos INT,
 );
 
 CREATE TABLE playlists(
