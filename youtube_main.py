@@ -180,6 +180,7 @@ def insert_data_intosql():
       )
       mycursor.execute(sql_query, sql_values)
       mydb.commit()
+
   def insert_playlist_data():
 
     for document in mongo_data:
@@ -202,16 +203,53 @@ def insert_data_intosql():
 
     for document in mongo_data:
 
+      Video_Id = document["videos"]["Video_Id"]
+      Playlist_id = document["Channel"]["Playlist_id"]
+      Video_Name = document["videos"]["Video_Name"]
+      Video_Description = document["videos"]["Video_Description"]
+      Video_Statistics = document["videos"]["Video_Statistics"]
+      Comment_Count = document["videos"]["Comment_Count"]
+      View_Count = document["videos"]["View_Count"]
+      Like_Count = document["videos"]["Like_Count"]
+      Favorite_Count = document["videos"]["Favorite_Count"]
+      Published_At = document["videos"]["Published_At"]
+      Duration = document["videos"]["Duration"]
+      Thumbnail = document["videos"]["Thumbnail"]
+      Caption_Status = document["videos"]["Caption_Status"]
 
+      sql_query2 = f"""INSERT INTO videos(
+        video_id, playlist_id, video_name, video_description, video_statistics, comment_count,
+        view_count, like_count, favorite_Count, published_At, duration, thumbnail, caption_status
+        ) VALUES (
+          %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+      
+      sql_values2 = (
+          Video_Id, Playlist_id, Video_Name, Video_Description, Video_Statistics, Comment_Count,
+          View_Count, Like_Count, Favorite_Count, Published_At, Duration, Thumbnail, Caption_Status
+      )
 
+      mycursor.execute(sql_query2, sql_values2)
+      mydb.commit()
 
+  def insert_comment_data():
 
-  # mycursor.execute(f"""select * from youtube_db.channeltable""")
+    for document in mongo_data:
 
-  # rows = mycursor.fetchall() # Fetch the results of the query
+      Comment_Id = document["videos"]["comments"]["Comment_Id"]
+      Video_Id = document["videos"]["comments"]["Video_ID"]
+      Comment_Text = document["videos"]["comments"]["Comment_Text"]
+      Comment_Author = document["videos"]["comments"]["Comment_Author"]
+      Comment_PublishedAt = document["videos"]["comments"]["Comment_PublishedAt"]
 
-  # # Print the rows
-  # for row in rows:
-  #     print(row)
+      sql_query3 = f"""
+      INSERT INTO comments(
+        comment_id, video_id, comment_text, comment_author, comment_published_date
+      ) VALUES(
+        %s, %s, %s, %s, %s
+      )"""
 
-  # return rows
+      sql_values3 = (
+          Comment_Id, Video_Id, Comment_Text, Comment_Author, Comment_PublishedAt
+      )
+      mycursor.execute(sql_query3, sql_values3)
+      mydb.commit()
