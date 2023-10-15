@@ -1,15 +1,16 @@
 import json
 import pandas as pd
 
+import certifi
 import pymongo
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 
 import mysql.connector
 
-import google_auth_oauthlib.flow
+# import google_auth_oauthlib.flow
 import googleapiclient.discovery
-import googleapiclient.errors
+# import googleapiclient.errors
 from googleapiclient.discovery import build
 
 
@@ -33,6 +34,7 @@ def get_channel_data(youtube, channel_id):
                        "Subscribers_Count": ch_data['items'][0]['statistics']['subscriberCount'],
                        "Views": ch_data['items'][0]['statistics']['viewCount'],
                        "Channel_Description": ch_data['items'][0]['snippet']['description'],
+                       "Total_Videos": ch_data['items'][0]['statistics']['videoCount'],
                        "channel_Playlist_Id": ch_data['items'][0]['contentDetails']['relatedPlaylists']['uploads']
                        }
     return channel_details
@@ -116,24 +118,29 @@ try:
     output_data["videos"] = video_response
 
 
-    print(json.dumps(output_data))
+    # print(json.dumps(output_data))
 
 except Exception as error:
     print(error)
 
 
 # insert this output data into mongo
+uri = (connection string)
+# Create a new client and connect to the server
+client = MongoClient(uri, tlsCAFile=certifi.where())
+db = client.youtube    #database created
+records = db.harvest
 
-myclient = MongoClient("connection_string")
+
 
 # database
-db = myclient["youtube"]
+# db = myclient.youtube_db
 
 # collection
-collection = db["harvest"]
+# collection = db.harvest
 
 # Inserting the entire list in the collection
-collection.insert_many([output_data])
+records.insert_many([output_data])
 
 # Establishing MYSQL connection
 
@@ -152,104 +159,158 @@ mycursor = mydb.cursor(buffered=True)
 # # for x in mycursor:
 # #     print(x)
 
-def insert_data_intosql():
+# def insert_data_intosql():
 
-  mongo_data = collection.find() # Fetch data from MongoDB collection
+#   mongo_data = collection.find() # Fetch data from MongoDB collection
 
 # Insert data into MySQL table
-  def insert_channel_data():
+def insert_channel_data():
+
+    mongo_data = records.find() # Fetch data from MongoDB collection
 
     for document in mongo_data:
         
-      Channel_name = document["Channel"]["Channel_name"]
-      Channel_ID = document["Channel"]["Channel_ID"]
-      Subscribers = document["Channel"]["Subscribers"]
-      Views = document["Channel"]["Views"]
-      Description = document["Channel"]["Description"]
-      Total_Videos = document["Channel"]["Total_Videos"]
-      Playlist_id = document["Channel"]["Playlist_id"]
+        print(document["channel"]["Channel_Id"])
+        Channel_name = document["channel"]["Channel_Name"]
+        Channel_ID = document["channel"]["Channel_Id"]
+        Subscribers = document["channel"]["Subscribers_Count"]
+        Views = document["channel"]["Views"]
+        Description = document["channel"]["Channel_Description"]
+        Total_Videos = document["channel"]["Total_Videos"]
+        Playlist_id = document["channel"]["channel_Playlist_Id"]
 
-      sql_query = f"""
-      INSERT INTO channels(
-          Channel_id, channel_name, subscribers, views, description
-      ) VALUES(%s, %s, %s, %s, %s
-      )"""
+        ch_exist_query = ("SELECT * FROM channels WHERE channel_id = '{}';").format(Channel_ID)
+        mycursor.execute(ch_exist_query)
+        result = mycursor.fetchone()
 
-      sql_values = (
-          Channel_name, Channel_ID, Subscribers, Views, Description
-      )
-      mycursor.execute(sql_query, sql_values)
-      mydb.commit()
+        if result:
+            print("Channel already exists: ", Channel_ID)
+            continue
 
-  def insert_playlist_data():
+        sql_query = f"""
+        INSERT INTO channels(
+            channel_name, Channel_id, subscribers, views, description, total_videos, playlist_id
+        ) VALUES(%s, %s, %s, %s, %s, %s, %s
+        )"""
+
+        sql_values = (
+            Channel_name, Channel_ID, Subscribers, Views, Description, Total_Videos, Playlist_id
+        )
+        mycursor.execute(sql_query, sql_values)
+        mydb.commit()
+
+        #Inserting playlist data
+
+        sql_query1 = f"""INSERT INTO playlists(playlist_id, channel_id) 
+        VALUES (%s, %s)"""
+
+        sql_values1 = (
+            Playlist_id, Channel_ID
+        )
+
+        mycursor.execute(sql_query1, sql_values1)
+        mydb.commit()
+
+#   def insert_playlist_data():
+
+#     for document in mongo_data:
+
+#       Playlist_id = document["Channel"]["Playlist_id"]
+#       Channel_ID = document["Channel"]["Channel_ID"]
+#       Playlist_name = document["Channel"]["playlistName"]
+
+#       sql_query1 = f"""INSERT INTO playlists(playlist_id, channel_id, playlist_name) 
+#       VALUES (%s, %s, %s)"""
+
+#       sql_values1 = (
+#           Playlist_id, Channel_ID, Playlist_name
+#       )
+
+#       mycursor.execute(sql_query1, sql_values1)
+#       mydb.commit()
+
+def insert_video_data():
+
+    mongo_data = records.find()
+    for document in mongo_data:
+
+        Playlist_id = document["channel"]["channel_Playlist_Id"]
+
+        for videos in document["videos"]:
+
+            Video_Id = videos["Video_Id"]
+            Video_Name = videos["Video_Name"]
+            Video_Description = videos["Video_Description"]
+            Video_Statistics = videos["Video_Statistics"]
+            Comment_Count = videos["Comment_Count"]
+            View_Count = videos["View_Count"]
+            Like_Count = videos["Like_Count"]
+            Favorite_Count = videos["Favorite_Count"]
+            Published_At = videos["Published_At"]
+            Duration =videos["Duration"]
+            Thumbnail =videos["Thumbnail"]
+            Caption_Status =videos["Caption_Status"]
+
+            vid_exist_query = ("SELECT * FROM videos WHERE video_id = '{}';").format(Video_Id)
+            mycursor.execute(vid_exist_query)
+            result = mycursor.fetchone()
+
+            if result:
+                print("Video already exists: ", Video_Id)
+                continue
+
+            sql_query2 = f"""INSERT INTO videos(
+            video_id, playlist_id, video_name, video_description, video_statistics, comment_count,
+            view_count, like_count, favorite_Count, published_At, duration, thumbnail, caption_status
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+            
+            sql_values2 = (
+                Video_Id, Playlist_id, Video_Name, Video_Description, Video_Statistics, Comment_Count,
+                View_Count, Like_Count, Favorite_Count, Published_At, Duration, Thumbnail, Caption_Status
+            )
+
+            mycursor.execute(sql_query2, sql_values2)
+            mydb.commit()
+
+def insert_comment_data():
+
+    mongo_data = records.find()
 
     for document in mongo_data:
 
-      Playlist_id = document["Channel"]["Playlist_id"]
-      Channel_ID = document["Channel"]["Channel_ID"]
-      Playlist_name = document["Channel"]["playlistName"]
+        for comment in document["videos"]:
 
-      sql_query1 = f"""INSERT INTO playlists(playlist_id, channel_id, playlist_name) 
-      VALUES (%s, %s, %s)"""
+            for comments in comment["comments"]:
 
-      sql_values1 = (
-          Playlist_id, Channel_ID, Playlist_name
-      )
+                Video_Id = comments["Video_ID"]
+                Comment_Id = comments["Comment_Id"]
+                Comment_Text = comments["Comment_Text"]
+                Comment_Author = comments["Comment_Author"]
+                Comment_PublishedAt = comments["Comment_PublishedAt"]
 
-      mycursor.execute(sql_query1, sql_values1)
-      mydb.commit()
+                vid_exist_query = ("SELECT * FROM comments WHERE comment_id = '{}';").format(Comment_Id)
+                mycursor.execute(vid_exist_query)
+                result = mycursor.fetchone()
 
-  def insert_video_data():
+                if result:
+                    print("comment already exists: ", Comment_Id)
+                    continue
 
-    for document in mongo_data:
+                sql_query3 = f"""
+                INSERT INTO comments(
+                comment_id, video_id, comment_text, comment_author, comment_published_date
+                ) VALUES(
+                %s, %s, %s, %s, %s
+                )"""
 
-      Video_Id = document["videos"]["Video_Id"]
-      Playlist_id = document["Channel"]["Playlist_id"]
-      Video_Name = document["videos"]["Video_Name"]
-      Video_Description = document["videos"]["Video_Description"]
-      Video_Statistics = document["videos"]["Video_Statistics"]
-      Comment_Count = document["videos"]["Comment_Count"]
-      View_Count = document["videos"]["View_Count"]
-      Like_Count = document["videos"]["Like_Count"]
-      Favorite_Count = document["videos"]["Favorite_Count"]
-      Published_At = document["videos"]["Published_At"]
-      Duration = document["videos"]["Duration"]
-      Thumbnail = document["videos"]["Thumbnail"]
-      Caption_Status = document["videos"]["Caption_Status"]
+                sql_values3 = (
+                    Comment_Id, Video_Id, Comment_Text, Comment_Author, Comment_PublishedAt
+                )
+                mycursor.execute(sql_query3, sql_values3)
+                mydb.commit()
 
-      sql_query2 = f"""INSERT INTO videos(
-        video_id, playlist_id, video_name, video_description, video_statistics, comment_count,
-        view_count, like_count, favorite_Count, published_At, duration, thumbnail, caption_status
-        ) VALUES (
-          %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
-      
-      sql_values2 = (
-          Video_Id, Playlist_id, Video_Name, Video_Description, Video_Statistics, Comment_Count,
-          View_Count, Like_Count, Favorite_Count, Published_At, Duration, Thumbnail, Caption_Status
-      )
-
-      mycursor.execute(sql_query2, sql_values2)
-      mydb.commit()
-
-  def insert_comment_data():
-
-    for document in mongo_data:
-
-      Comment_Id = document["videos"]["comments"]["Comment_Id"]
-      Video_Id = document["videos"]["comments"]["Video_ID"]
-      Comment_Text = document["videos"]["comments"]["Comment_Text"]
-      Comment_Author = document["videos"]["comments"]["Comment_Author"]
-      Comment_PublishedAt = document["videos"]["comments"]["Comment_PublishedAt"]
-
-      sql_query3 = f"""
-      INSERT INTO comments(
-        comment_id, video_id, comment_text, comment_author, comment_published_date
-      ) VALUES(
-        %s, %s, %s, %s, %s
-      )"""
-
-      sql_values3 = (
-          Comment_Id, Video_Id, Comment_Text, Comment_Author, Comment_PublishedAt
-      )
-      mycursor.execute(sql_query3, sql_values3)
-      mydb.commit()
+# execute = insert_data_intosql()
+execute1 = insert_channel_data()
+execute2 = insert_video_data()
+execute3 = insert_comment_data()
