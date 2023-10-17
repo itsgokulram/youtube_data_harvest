@@ -30,11 +30,11 @@ Obtain API credentials:
 
 Configuration:
 
-1.Run the initial sql file once to create the tables as needed
+1.Run the initial create_tables.sql file once to create the tables as needed
 
-2.Open the youtube_main.py file in the project directory.
+2.Open the main.py file in the project directory.
 
-3.Set the desired configuration options:
+3.Set the desired configuration options
 
 4.Specify your YouTube API key.
 
@@ -42,14 +42,13 @@ Configuration:
 
 6.Get the Youtube Channel ID from the Youtube's sourcepage
 
-7.provide the Youtube Channel ID data to be harvested.
+7.provide the Youtube Channel ID in the streamlit page  for data to be harvested.
 
-8.Set other configuration options as needed.
 
 Usage:
 
-1.Launch the Streamlit app: streamlit run youtube_main.py
+1.Launch the Streamlit app: streamlit run main.py
 
-2.Run the youtubemain.py script, make sure you have main and sql files in the same folder.
+2.Run the main.py script, make sure you have main and sql files in the same folder.
 
 3.The app will start and open in your browser. You can explore the harvested YouTube data and visualize the results.
