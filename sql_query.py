@@ -131,7 +131,7 @@ def sql_q8(): #What are the names of all the channels that have published videos
 
 def sql_q9(): #What is the average duration of all videos in each channel, and what are their corresponding channel names?
 
-    query9 = f"""SELECT channels.channel_name, AVG(videos.duration) AS average_duration \
+    query9 = f"""SELECT channels.channel_name, ROUND(AVG(videos.duration_seconds)/60, 2) AS avg_duration_in_minutes \
     FROM channels JOIN videos ON channels.playlist_id = videos.playlist_id 
     GROUP BY channels.channel_name;"""
 
@@ -139,7 +139,7 @@ def sql_q9(): #What is the average duration of all videos in each channel, and w
 
     result9 = mycursor.fetchall()
 
-    query9_df = pd.DataFrame(result9, columns= ['Channel Name', 'Average duration'])
+    query9_df = pd.DataFrame(result9, columns= ['Channel Name', 'Average duration (in mins)'])
 
     return query9_df
 
