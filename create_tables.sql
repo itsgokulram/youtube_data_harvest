@@ -25,6 +25,7 @@ CREATE TABLE videos(
     favorite_Count INT,
     published_At VARCHAR(255),
     duration VARCHAR(255),
+    duration_seconds INT,
     thumbnail VARCHAR(255),
     caption_status VARCHAR(255)
 );
