@@ -30,6 +30,7 @@ client = MongoClient(uri, tlsCAFile=certifi.where())
 db = client.youtube    #database created
 records = db.harvest
 
+st. set_page_config(layout="wide")
 #streamlit page title
 st.header("Youtube Data Harvesting and Warehousing")
 st.sidebar.title("Fetch Data and Migrate to SQl")
